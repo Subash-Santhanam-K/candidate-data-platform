@@ -1,0 +1,4 @@
+name,email,phone,skills,location
+Alice Johnson,alice.johnson@example.com,+919876543210,"Python,SQL",Bangalore
+Bob Smith,bob.smith@techmail.com,+14155551234,"Java,Spring Boot",San Francisco
+Charlie Brown,charlie.brown@email.com,+442071234567,"JavaScript,React,Node.js",London

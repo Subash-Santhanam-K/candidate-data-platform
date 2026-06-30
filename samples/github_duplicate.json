@@ -1,0 +1,6 @@
+{
+    "username": "alice-j",
+    "email": "ALICE.JOHNSON@example.com",
+    "skills": ["Python", "Terraform", "CI/CD"],
+    "location": "bangalore, india"
+}

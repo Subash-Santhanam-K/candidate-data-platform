@@ -1,0 +1,8 @@
+{
+    "name": "Bob Smith",
+    "mail": "bob.smith@techmail.com",
+    "mobile": "+14155551234",
+    "technologies": ["Java", "Spring Boot", "Kubernetes"],
+    "work_history": "Backend Developer at CloudInc (2021-2024)",
+    "location": "San Francisco, USA"
+}

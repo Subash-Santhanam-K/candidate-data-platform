@@ -1,0 +1,7 @@
+{
+    "name": "Alice Johnson",
+    "email": "alice.johnson@example.com",
+    "headline": "Senior Software Engineer",
+    "location": "Bangalore, Karnataka, India",
+    "skills": ["Python", "Docker", "Machine Learning"]
+}

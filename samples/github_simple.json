@@ -1,0 +1,6 @@
+{
+    "username": "alicejohnson",
+    "email": "alice.johnson@example.com",
+    "skills": ["Python", "Git", "Linux"],
+    "location": "Bangalore"
+}

@@ -1,0 +1,7 @@
+{
+    "name": "   ",
+    "email": "not-an-email",
+    "phone": "abc-def-ghij",
+    "skills": ["", "  ", "Python", null],
+    "location": ""
+}
