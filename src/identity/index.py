@@ -1,50 +1,44 @@
 from __future__ import annotations
-from typing import Any
 from ..core.enums import FieldType
-from ..core.models.observation import Observation
+from .candidate import IdentityCandidate
 
 
 class IdentityIndex:
-    """Indexes observations by normalized identity values for EMAIL and PHONE."""
+    """Indexes IdentityCandidate objects by normalized identity values for EMAIL and PHONE."""
 
     def __init__(self) -> None:
         """Initializes the IdentityIndex."""
-        self._groups: dict[str, list[Observation]] = {}
+        self._groups: dict[str, list[IdentityCandidate]] = {}
         self._supported_fields = {FieldType.EMAIL, FieldType.PHONE}
 
-    def add(self, observation: Observation) -> None:
-        """Adds an observation to the index if it is a supported identity field.
+    def add(self, candidate: IdentityCandidate) -> None:
+        """Indexes a candidate's identity keys.
 
         Args:
-            observation (Observation): The observation to add.
+            candidate (IdentityCandidate): The candidate to index.
         """
-        if observation.field_type not in self._supported_fields:
-            return
+        for field_type, val in candidate.identity_keys.items():
+            if field_type not in self._supported_fields:
+                continue
+            if val is None:
+                continue
 
-        val = observation.normalized_value
-        if val is None:
-            return
-
-        if isinstance(val, str):
-            val_str = val.strip()
-            if not val_str:
-                return
-        elif hasattr(val, "__len__") and len(val) == 0:
-            return
-        else:
             val_str = str(val).strip()
             if not val_str:
-                return
+                continue
 
-        # Use the normalized string representation as the key
-        if val_str not in self._groups:
-            self._groups[val_str] = []
-        self._groups[val_str].append(observation)
+            # Index candidate under this key
+            if val_str not in self._groups:
+                self._groups[val_str] = []
 
-    def groups(self) -> dict[str, list[Observation]]:
-        """Returns the dictionary mapping identity keys to lists of observations.
+            # Prevent duplicate candidate registration under the same key
+            if candidate not in self._groups[val_str]:
+                self._groups[val_str].append(candidate)
+
+    def groups(self) -> dict[str, list[IdentityCandidate]]:
+        """Returns the dictionary mapping identity keys to lists of candidates.
 
         Returns:
-            dict[str, list[Observation]]: The identity groups dictionary.
+            dict[str, list[IdentityCandidate]]: The identity groups dictionary.
         """
         return self._groups

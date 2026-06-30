@@ -1,28 +1,29 @@
 from __future__ import annotations
 from uuid import uuid4
 from ..core.models.candidate_cluster import CandidateCluster
-from ..core.models.observation import Observation
+from .candidate import IdentityCandidate
 
 
 class ClusterBuilder:
-    """Builds CandidateCluster domain objects from indexed identity groups."""
+    """Builds CandidateCluster domain objects from merged IdentityCandidates."""
 
-    def build(self, groups: dict[str, list[Observation]]) -> list[CandidateCluster]:
-        """Converts grouped observations into CandidateCluster objects.
+    def build(self, candidates: list[IdentityCandidate]) -> CandidateCluster:
+        """Converts grouped candidates into a single CandidateCluster.
+
+        Collates observations across all candidates and ensures uniqueness.
 
         Args:
-            groups (dict[str, list[Observation]]): Grouped observations dictionary.
+            candidates (list[IdentityCandidate]): The merged candidates.
 
         Returns:
-            list[CandidateCluster]: Constructed candidate clusters.
+            CandidateCluster: The constructed domain cluster.
         """
-        clusters: list[CandidateCluster] = []
-        for obs_list in groups.values():
-            if not obs_list:
-                continue
-            cluster = CandidateCluster(
-                cluster_id=uuid4(),
-                observations=list(obs_list),
-            )
-            clusters.append(cluster)
-        return clusters
+        obs_by_id = {}
+        for cand in candidates:
+            for obs in cand.observations:
+                obs_by_id[obs.id] = obs
+
+        return CandidateCluster(
+            cluster_id=uuid4(),
+            observations=list(obs_by_id.values()),
+        )
