@@ -44,3 +44,11 @@ class MergeStrategy(StrEnum):
     SINGLE_VALUE = "SINGLE_VALUE"
     UNION = "UNION"
     TIMELINE = "TIMELINE"
+
+
+class ProjectionProfile(StrEnum):
+    """Represents profile visibility options for projected views."""
+    MINIMAL = "minimal"
+    RECRUITER = "recruiter"
+    AUDIT = "audit"
+
