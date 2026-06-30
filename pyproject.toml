@@ -1,0 +1,5 @@
+[project]
+name = "candidate-data-platform"
+version = "0.1.0"
+description = "A configurable platform for generating canonical candidate profiles from multiple data sources."
+requires-python = ">=3.12"
