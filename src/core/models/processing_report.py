@@ -1,9 +1,9 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
-@dataclass
+@dataclass(slots=True)
 class ProcessingReport:
     """Represents stats, warnings, errors, and conflicts encountered during pipeline execution.
 
@@ -13,7 +13,8 @@ class ProcessingReport:
         conflicts (list[dict[str, Any]]): List of data conflicts identified during processing.
         statistics (dict[str, Any]): Dictionary of execution statistics (e.g., execution time).
     """
-    warnings: list[str]
-    errors: list[str]
-    conflicts: list[dict[str, Any]]
-    statistics: dict[str, Any]
+    warnings: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    conflicts: list[dict[str, Any]] = field(default_factory=list)
+    statistics: dict[str, Any] = field(default_factory=dict)
+
