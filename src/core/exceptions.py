@@ -7,3 +7,9 @@ class ConfigurationError(Exception):
     or violates configuration constraints.
     """
     pass
+
+
+class PipelineError(Exception):
+    """Raised when orchestration fails."""
+    pass
+
