@@ -3,7 +3,7 @@ from dataclasses import asdict
 
 from ..core.enums import ObservationStatus, FieldType
 from ..core.models.observation import Observation
-from ..core.models.raw_candidate import RawCandidateDocument, RawAttribute
+from ..adapters.models import RawCandidateDocument, RawAttribute
 from ..registries.field_definition import FieldDefinition
 from ..registries.field_registry import FieldDefinitionRegistry
 from .identifier_provider import IdentifierProvider

@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from uuid import UUID
 from typing import Any
-from ..enums import SourceType
+from ..core.enums import SourceType
 
 
 @dataclass(slots=True, frozen=True)

@@ -6,7 +6,6 @@ from .decision_trace import DecisionTrace
 from .golden_record import GoldenRecord
 from .processing_report import ProcessingReport
 from .processing_result import ProcessingResult
-from .raw_candidate import RawAttribute, RawCandidateDocument
 
 __all__ = [
     "SourceInstance",
@@ -17,6 +16,4 @@ __all__ = [
     "GoldenRecord",
     "ProcessingReport",
     "ProcessingResult",
-    "RawAttribute",
-    "RawCandidateDocument",
 ]
