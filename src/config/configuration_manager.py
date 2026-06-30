@@ -6,7 +6,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 from ..core.exceptions import ConfigurationError
-from ..core.enums import FieldType, MergeStrategy
+from ..core.enums import FieldType, MergeStrategy, SourceType
 from .configuration_models import (
     PlatformConfiguration,
     PlatformConfig,
@@ -177,6 +177,13 @@ class ConfigurationManager:
         for src_name, src_cfg in sources_sec.items():
             if not isinstance(src_cfg, dict):
                 raise ConfigurationError(f"Source configuration for '{src_name}' must be a dictionary")
+            
+            # Validate SourceType conversion
+            try:
+                SourceType(src_name.upper())
+            except ValueError as e:
+                raise ConfigurationError(f"Invalid SourceType name '{src_name}' in sources config.") from e
+
             for field_key in ("reliability", "adapter", "enabled"):
                 if field_key not in src_cfg:
                     raise ConfigurationError(f"Missing field '{field_key}' in source config for '{src_name}'")
@@ -190,6 +197,10 @@ class ConfigurationManager:
 
             if not isinstance(src_cfg["enabled"], bool):
                 raise ConfigurationError(f"Source '{src_name}' enabled must be a boolean")
+
+            if "description" in src_cfg and src_cfg["description"] is not None:
+                if not isinstance(src_cfg["description"], str):
+                    raise ConfigurationError(f"Description for source '{src_name}' must be a string")
 
     def _validate_fields(self, fields: dict[str, Any], merge: dict[str, Any]) -> None:
         """Validates field enums, strategies, and references."""
@@ -373,9 +384,11 @@ class ConfigurationManager:
         for src_name, src_val in sources["sources"].items():
             sources_cfg[src_name] = SourceConfig(
                 name=src_name,
+                source_type=SourceType(src_name.upper()),
                 reliability=float(src_val["reliability"]),
                 adapter=src_val["adapter"],
                 enabled=src_val["enabled"],
+                description=src_val.get("description"),
             )
 
         # Fields

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
-from ..core.enums import FieldType, MergeStrategy
+from ..core.enums import FieldType, MergeStrategy, SourceType
 
 
 @dataclass(slots=True)
@@ -50,14 +50,18 @@ class SourceConfig:
 
     Attributes:
         name (str): Unique name of the source (e.g., 'resume').
+        source_type (SourceType): The type of the data source.
         reliability (float): Trust score of the source between 0.0 and 1.0.
         adapter (str): Adapter class/module name to process the source.
         enabled (bool): Flag determining if the source should be parsed.
+        description (str | None): Optional description of the source.
     """
     name: str
+    source_type: SourceType
     reliability: float
     adapter: str
     enabled: bool
+    description: str | None = None
 
 
 @dataclass(slots=True)
