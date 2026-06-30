@@ -1,6 +1,20 @@
 version: 1
 
 fields:
+  name:
+    type: NAME
+    strategy: SINGLE_VALUE
+    required: false
+    aliases:
+      - full_name
+      - fullname
+      - candidate_name
+      - employee_name
+      - person_name
+      - display_name
+      - applicant_name
+    description: "Full legal or display name of the candidate used for identification"
+
   email:
     type: EMAIL
     strategy: SINGLE_VALUE
@@ -8,9 +22,14 @@ fields:
     validator: email
     aliases:
       - mail
-      - emailAddress
+      - email_address
+      - emailid
       - primary_email
-    description: "Primary email address of the candidate"
+      - contact_email
+      - work_email
+      - personal_email
+      - candidate_email
+    description: "Primary email address of the candidate used for identity resolution and contact"
 
   phone:
     type: PHONE
@@ -18,18 +37,31 @@ fields:
     required: false
     validator: phone
     aliases:
-      - telephone
       - mobile
-    description: "Contact phone number of the candidate"
+      - mobile_number
+      - phone_number
+      - contact_number
+      - telephone
+      - contact_phone
+      - primary_phone
+      - cell
+      - cell_phone
+    description: "Primary contact phone number of the candidate including country code"
 
   skills:
     type: SKILL
     strategy: UNION
     required: false
     aliases:
-      - specialties
+      - skill
+      - technical_skills
       - technologies
-    description: "Technical skills and technologies list"
+      - tech_stack
+      - core_skills
+      - competencies
+      - expertise
+      - programming_languages
+    description: "Combined set of technical and professional skills across all sources"
 
   experience:
     type: EXPERIENCE
@@ -37,4 +69,58 @@ fields:
     required: false
     aliases:
       - work_history
-    description: "Candidate's work history timeline"
+      - employment_history
+      - professional_experience
+      - career_history
+      - job_history
+      - employment
+      - experience_summary
+    description: "Chronological record of the candidate's professional work history"
+
+  education:
+    type: EDUCATION
+    strategy: TIMELINE
+    required: false
+    aliases:
+      - academic_background
+      - qualifications
+      - education_history
+      - degrees
+      - academics
+    description: "Chronological record of the candidate's academic qualifications and degrees"
+
+  company:
+    type: COMPANY
+    strategy: SINGLE_VALUE
+    required: false
+    aliases:
+      - organization
+      - employer
+      - current_company
+      - company_name
+      - organisation
+    description: "Current or most recent employer organization of the candidate"
+
+  location:
+    type: LOCATION
+    strategy: SINGLE_VALUE
+    required: false
+    aliases:
+      - city
+      - address
+      - current_location
+      - residence
+      - region
+      - country
+    description: "Current city or region of residence of the candidate"
+
+  certifications:
+    type: CERTIFICATION
+    strategy: UNION
+    required: false
+    aliases:
+      - certificates
+      - licenses
+      - credentials
+      - professional_certifications
+    description: "Accumulated professional certifications and licenses held by the candidate"

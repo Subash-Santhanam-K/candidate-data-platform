@@ -5,13 +5,28 @@ sources:
     reliability: 0.95
     adapter: resume_adapter
     enabled: true
+    description: "Candidate-authored resume or CV — highest reliability as the candidate's own professional summary"
 
   linkedin:
     reliability: 0.90
     adapter: linkedin_adapter
     enabled: true
+    description: "LinkedIn profile export — high reliability as a professionally maintained public profile"
 
   github:
-    reliability: 0.85
+    reliability: 0.70
     adapter: github_adapter
     enabled: true
+    description: "GitHub profile and repository metadata — moderate reliability as technical signal only"
+
+  csv:
+    reliability: 0.60
+    adapter: csv_adapter
+    enabled: true
+    description: "Bulk CSV import from ATS or spreadsheet — lower reliability due to manual data entry and format inconsistencies"
+
+  recruiter_notes:
+    reliability: 0.50
+    adapter: recruiter_notes_adapter
+    enabled: true
+    description: "Recruiter-authored notes and annotations — lowest reliability as subjective and often incomplete"
