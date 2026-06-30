@@ -100,10 +100,18 @@ class UnionStrategy(BaseMergeStrategy):
 
         unique_vals = set()
         for o in contributing_obs:
-            if isinstance(o.normalized_value, list):
-                unique_vals.update(o.normalized_value)
-            elif o.normalized_value is not None:
-                unique_vals.add(o.normalized_value)
+            val = o.normalized_value
+            if isinstance(val, list):
+                for item in val:
+                    if item is not None:
+                        if isinstance(item, str) and not item.strip():
+                            continue
+                        unique_vals.add(item)
+            else:
+                if val is not None:
+                    if isinstance(val, str) and not val.strip():
+                        continue
+                    unique_vals.add(val)
 
         resolved_value = sorted(list(unique_vals))
 
