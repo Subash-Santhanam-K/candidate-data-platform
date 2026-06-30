@@ -1,0 +1,11 @@
+version: 1
+
+weights:
+  agreement: 0.40
+  freshness: 0.20
+  validation: 0.15
+  source_reliability: 0.25
+
+thresholds:
+  accepted: 0.70
+  uncertain: 0.45

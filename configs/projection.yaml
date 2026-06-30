@@ -1,0 +1,21 @@
+version: 1
+
+profiles:
+  minimal:
+    include:
+      - name
+      - email
+    include_confidence: false
+    include_trace: false
+
+  recruiter:
+    include:
+      - "*"
+    include_confidence: true
+    include_trace: false
+
+  audit:
+    include:
+      - "*"
+    include_confidence: true
+    include_trace: true

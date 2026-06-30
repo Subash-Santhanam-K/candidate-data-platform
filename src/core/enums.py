@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class SourceType(str, Enum):
+class SourceType(StrEnum):
     """Represents supported input source types."""
     RESUME = "RESUME"
     LINKEDIN = "LINKEDIN"
@@ -10,7 +10,7 @@ class SourceType(str, Enum):
     RECRUITER_NOTES = "RECRUITER_NOTES"
 
 
-class ObservationStatus(str, Enum):
+class ObservationStatus(StrEnum):
     """Represents the processing stage of an Observation."""
     RAW = "RAW"
     NORMALIZED = "NORMALIZED"
@@ -18,14 +18,14 @@ class ObservationStatus(str, Enum):
     INVALID = "INVALID"
 
 
-class DecisionState(str, Enum):
+class DecisionState(StrEnum):
     """Represents the final state of a reasoning decision."""
     ACCEPTED = "ACCEPTED"
     UNCERTAIN = "UNCERTAIN"
     REJECTED = "REJECTED"
 
 
-class FieldType(str, Enum):
+class FieldType(StrEnum):
     """Represents semantic field categories."""
     NAME = "NAME"
     EMAIL = "EMAIL"

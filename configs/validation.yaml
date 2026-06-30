@@ -1,0 +1,10 @@
+version: 1
+
+rules:
+  email:
+    required: true
+    format: email
+
+  phone:
+    required: false
+    format: phone

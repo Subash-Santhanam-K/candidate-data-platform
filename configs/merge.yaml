@@ -1,0 +1,10 @@
+version: 1
+
+single_value:
+  tie_breaker: newest
+
+union:
+  remove_duplicates: true
+
+timeline:
+  sort: descending

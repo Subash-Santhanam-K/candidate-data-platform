@@ -1,0 +1,17 @@
+version: 1
+
+sources:
+  resume:
+    reliability: 0.95
+    adapter: resume_adapter
+    enabled: true
+
+  linkedin:
+    reliability: 0.90
+    adapter: linkedin_adapter
+    enabled: true
+
+  github:
+    reliability: 0.85
+    adapter: github_adapter
+    enabled: true

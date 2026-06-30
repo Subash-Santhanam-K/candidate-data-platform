@@ -1,0 +1,10 @@
+version: 1
+
+pipeline:
+  fail_fast: false
+  keep_observation_history: true
+  generate_decision_trace: true
+
+features:
+  confidence_scoring: true
+  projection: true
