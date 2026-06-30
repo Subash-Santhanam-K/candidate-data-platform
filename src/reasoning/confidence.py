@@ -39,39 +39,10 @@ class ConfidenceCalculator:
 
         weights = self._config.weights
 
-        # 1. Agreement score (consensus ratio among observations)
-        # For Single Value: ratio of matching observations in context
-        # For Union/Timeline: consensus defaults to 1.0 as it aggregates all
-        selected_obs = selection.selected_observations
-        if len(selected_obs) == 1:
-            sel_val = selected_obs[0].normalized_value
-            matches = sum(1 for o in context.observations if o.normalized_value == sel_val)
-            score_agreement = matches / len(context.observations) if context.observations else 1.0
-        else:
-            score_agreement = 1.0
-
-        # 2. Validation score (average of selected observations validations)
-        val_scores = []
-        for obs in selected_obs:
-            res = obs.validation_result
-            if res is None:
-                val_scores.append(1.0)
-            elif hasattr(res, "score"):
-                val_scores.append(res.score)
-            elif isinstance(res, dict):
-                val_scores.append(res.get("score", 1.0))
-            else:
-                val_scores.append(1.0)
-        score_val = sum(val_scores) / len(val_scores) if val_scores else 1.0
-
-        # 3. Source reliability score (average of source reliabilities)
-        rel_scores = []
-        for obs in selected_obs:
-            rel_scores.append(self._get_reliability(obs))
-        score_rel = sum(rel_scores) / len(rel_scores) if rel_scores else 1.0
-
-        # 4. Freshness score (placeholder constant)
-        score_fresh = 1.0
+        score_agreement = self._compute_agreement_score(context, selection)
+        score_val = self._compute_validation_score(selection)
+        score_rel = self._compute_source_reliability_score(selection)
+        score_fresh = self._compute_freshness_score(selection)
 
         # Weighted Average Calculation
         num = (
@@ -88,6 +59,41 @@ class ConfidenceCalculator:
         )
 
         return num / den if den > 0 else 0.0
+
+    def _compute_agreement_score(self, context: DecisionContext, selection: SelectionResult) -> float:
+        """Computes the agreement consensus ratio among observations."""
+        selected_obs = selection.selected_observations
+        if len(selected_obs) == 1:
+            sel_val = selected_obs[0].normalized_value
+            matches = sum(1 for o in context.observations if o.normalized_value == sel_val)
+            return matches / len(context.observations) if context.observations else 1.0
+        return 1.0
+
+    def _compute_validation_score(self, selection: SelectionResult) -> float:
+        """Computes the average validation score of selected observations."""
+        val_scores = []
+        for obs in selection.selected_observations:
+            res = obs.validation_result
+            if res is None:
+                val_scores.append(1.0)
+            elif hasattr(res, "score"):
+                val_scores.append(res.score)
+            elif isinstance(res, dict):
+                val_scores.append(res.get("score", 1.0))
+            else:
+                val_scores.append(1.0)
+        return sum(val_scores) / len(val_scores) if val_scores else 1.0
+
+    def _compute_source_reliability_score(self, selection: SelectionResult) -> float:
+        """Computes the average source reliability score of selected observations."""
+        rel_scores = []
+        for obs in selection.selected_observations:
+            rel_scores.append(self._get_reliability(obs))
+        return sum(rel_scores) / len(rel_scores) if rel_scores else 1.0
+
+    def _compute_freshness_score(self, selection: SelectionResult) -> float:
+        """Computes the freshness score of selected observations (placeholder constant)."""
+        return 1.0
 
     def _get_reliability(self, obs: Observation) -> float:
         """Lookup reliability score for the observation source type."""

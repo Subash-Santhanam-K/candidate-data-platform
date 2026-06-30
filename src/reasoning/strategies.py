@@ -12,7 +12,7 @@ class BaseMergeStrategy(ABC):
 
     @abstractmethod
     def select(self, context: DecisionContext) -> SelectionResult:
-        """Selects target observations for conflict resolution.
+        """Selects target observations for conflict resolution and constructs resolved values.
 
         Args:
             context (DecisionContext): Context of the field's observations.
@@ -44,6 +44,7 @@ class SingleValueStrategy(BaseMergeStrategy):
         if not valid_obs:
             return SelectionResult(
                 selected_observations=[],
+                resolved_value=None,
                 reason="No valid observations found for this field.",
             )
 
@@ -55,8 +56,11 @@ class SingleValueStrategy(BaseMergeStrategy):
             reverse=True,
         )
 
+        selected_obs = sorted_obs[0]
+
         return SelectionResult(
-            selected_observations=[sorted_obs[0]],
+            selected_observations=[selected_obs],
+            resolved_value=selected_obs.normalized_value,
             reason="Selected newest valid observation",
         )
 
@@ -94,8 +98,18 @@ class UnionStrategy(BaseMergeStrategy):
         # Select all observations that have a non-empty value
         contributing_obs = [o for o in context.observations if o.normalized_value is not None]
 
+        unique_vals = set()
+        for o in contributing_obs:
+            if isinstance(o.normalized_value, list):
+                unique_vals.update(o.normalized_value)
+            elif o.normalized_value is not None:
+                unique_vals.add(o.normalized_value)
+
+        resolved_value = sorted(list(unique_vals))
+
         return SelectionResult(
             selected_observations=contributing_obs,
+            resolved_value=resolved_value,
             reason="Selected union of unique normalized values",
         )
 
@@ -123,7 +137,10 @@ class TimelineStrategy(BaseMergeStrategy):
             key=lambda o: (get_date_key(o), o.timestamp.timestamp() if o.timestamp else 0),
         )
 
+        resolved_value = [o.normalized_value for o in sorted_obs]
+
         return SelectionResult(
             selected_observations=sorted_obs,
+            resolved_value=resolved_value,
             reason="Selected chronological timeline",
         )

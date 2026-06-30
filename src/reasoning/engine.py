@@ -64,6 +64,8 @@ class ReasoningEngine:
     def reason(self, cluster: CandidateCluster) -> GoldenRecord:
         """Processes a CandidateCluster and returns its resolved GoldenRecord.
 
+        Only reasons over fields that actually exist in the cluster observations.
+
         Args:
             cluster (CandidateCluster): The candidate cluster of observations.
 
@@ -79,9 +81,12 @@ class ReasoningEngine:
 
         decisions: list[Decision] = []
 
-        # 2. Process every canonical field defined in the registry
-        for field_defn in self._field_registry.all():
-            field_obs = obs_by_field.get(field_defn.canonical_name, [])
+        # 2. Process only fields present in the CandidateCluster
+        for field_name, field_obs in obs_by_field.items():
+            try:
+                field_defn = self._field_registry.resolve(field_name)
+            except KeyError:
+                continue
 
             context = DecisionContext(
                 candidate_cluster=cluster,
