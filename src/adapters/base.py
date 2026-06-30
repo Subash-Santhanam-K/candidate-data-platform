@@ -25,6 +25,32 @@ class BaseAdapter(ABC):
         """
         pass
 
+    def _extract_mapping(
+        self,
+        source_instance: SourceInstance,
+        payload: Any,
+    ) -> RawCandidateDocument:
+        """Helper to translate a payload dictionary structure into a RawCandidateDocument.
+
+        Args:
+            source_instance (SourceInstance): Physical metadata of the source.
+            payload (Any): The payload dictionary mapping fields to values.
+
+        Returns:
+            RawCandidateDocument: Adapted raw candidate transport document.
+        """
+        attributes = []
+        if isinstance(payload, dict):
+            for k, v in payload.items():
+                attributes.append(self._create_attribute(name=k, value=v))
+
+        return RawCandidateDocument(
+            source_instance_id=source_instance.id,
+            source=source_instance.source_type,
+            attributes=attributes,
+            document_metadata=source_instance.metadata,
+        )
+
     def _create_attribute(
         self,
         name: str,

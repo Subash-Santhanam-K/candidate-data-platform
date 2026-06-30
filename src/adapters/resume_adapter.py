@@ -13,14 +13,4 @@ class ResumeAdapter(BaseAdapter):
         source_instance: SourceInstance,
         payload: Any,
     ) -> RawCandidateDocument:
-        attributes = []
-        if isinstance(payload, dict):
-            for k, v in payload.items():
-                attributes.append(self._create_attribute(name=k, value=v))
-
-        return RawCandidateDocument(
-            source_instance_id=source_instance.id,
-            source=source_instance.source_type,
-            attributes=attributes,
-            document_metadata=source_instance.metadata,
-        )
+        return self._extract_mapping(source_instance, payload)
