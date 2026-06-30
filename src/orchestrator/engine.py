@@ -3,6 +3,8 @@ from typing import Any
 from ..core.enums import ProjectionProfile
 from ..core.exceptions import PipelineError
 from ..adapters.models import RawCandidateDocument
+from ..core.models.golden_record import GoldenRecord
+from ..core.models.candidate_cluster import CandidateCluster
 from ..observations.builder import ObservationBuilder
 from ..normalization.engine import NormalizationEngine
 from ..validation.engine import ValidationEngine
@@ -69,6 +71,8 @@ class PipelineOrchestrator:
             self._project(context, profile)
 
             return context.projected_results
+        except PipelineError:
+            raise
         except Exception as exc:
             raise PipelineError(f"Pipeline execution failed: {str(exc)}") from exc
 
@@ -94,16 +98,22 @@ class PipelineOrchestrator:
 
     def _reason(self, context: PipelineContext) -> None:
         """Step 5: Selects best canonical values and resolves attribute conflicts."""
-        records = []
-        for cluster in context.candidate_clusters:
-            record = self._reasoning_engine.reason(cluster)
-            records.append(record)
-        context.golden_records = records
+        context.golden_records = [
+            self._reason_cluster(cluster)
+            for cluster in context.candidate_clusters
+        ]
+
+    def _reason_cluster(self, cluster: CandidateCluster) -> GoldenRecord:
+        """Delegates reasoning resolution for a single cluster of observations."""
+        return self._reasoning_engine.reason(cluster)
 
     def _project(self, context: PipelineContext, profile: ProjectionProfile) -> None:
         """Step 6: Filters GoldenRecords to visible dictionary representations."""
-        results = []
-        for record in context.golden_records:
-            projected = self._projection_engine.project(record, profile)
-            results.append(projected)
-        context.projected_results = results
+        context.projected_results = [
+            self._project_record(record, profile)
+            for record in context.golden_records
+        ]
+
+    def _project_record(self, record: GoldenRecord, profile: ProjectionProfile) -> dict[str, Any]:
+        """Delegates profile mapping view projection for a single GoldenRecord."""
+        return self._projection_engine.project(record, profile)
