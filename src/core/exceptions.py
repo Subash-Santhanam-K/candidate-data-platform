@@ -2,5 +2,8 @@
 
 
 class ConfigurationError(Exception):
-    """Exception raised for errors in the configuration loading or validation."""
+    """
+    Raised when platform configuration cannot be loaded
+    or violates configuration constraints.
+    """
     pass

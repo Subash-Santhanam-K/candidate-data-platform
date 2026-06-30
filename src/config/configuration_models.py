@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
-from ..core.enums import FieldType
+from ..core.enums import FieldType, MergeStrategy
 
 
 @dataclass(slots=True)
@@ -67,13 +67,13 @@ class FieldConfig:
     Attributes:
         field_name (str): Unique canonical name of the field (e.g., 'email').
         field_type (FieldType): Semantic field type enum value.
-        merge_strategy (str): The logic strategy to resolve conflicts (e.g., 'SINGLE_VALUE').
+        merge_strategy (MergeStrategy): The logic strategy to resolve conflicts.
         required (bool): Whether the field must be resolved.
         validator (str | None): Registered validator name.
     """
     field_name: str
     field_type: FieldType
-    merge_strategy: str
+    merge_strategy: MergeStrategy
     required: bool = False
     validator: str | None = None
 
@@ -163,13 +163,25 @@ class ConfidenceConfig:
 
 
 @dataclass(slots=True)
+class ValidationRuleConfig:
+    """Configuration representing a validation rule for a field.
+
+    Attributes:
+        required (bool): Whether the field is mandatory.
+        format (str | None): Optional string format pattern or format type identifier.
+    """
+    required: bool
+    format: str | None = None
+
+
+@dataclass(slots=True)
 class ValidationConfig:
     """Validation rules definitions.
 
     Attributes:
-        rules (dict[str, Any]): Dictionary of field names to validation rule configurations.
+        rules (dict[str, ValidationRuleConfig]): Mapped validation rule configurations.
     """
-    rules: dict[str, Any] = field(default_factory=dict)
+    rules: dict[str, ValidationRuleConfig] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

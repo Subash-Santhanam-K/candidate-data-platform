@@ -37,3 +37,10 @@ class FieldType(StrEnum):
     LOCATION = "LOCATION"
     CERTIFICATION = "CERTIFICATION"
     OTHER = "OTHER"
+
+
+class MergeStrategy(StrEnum):
+    """Represents candidate record merging strategies."""
+    SINGLE_VALUE = "SINGLE_VALUE"
+    UNION = "UNION"
+    TIMELINE = "TIMELINE"

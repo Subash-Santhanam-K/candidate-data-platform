@@ -6,7 +6,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 from ..core.exceptions import ConfigurationError
-from ..core.enums import FieldType
+from ..core.enums import FieldType, MergeStrategy
 from .configuration_models import (
     PlatformConfiguration,
     PlatformConfig,
@@ -22,6 +22,7 @@ from .configuration_models import (
     ThresholdsConfig,
     ConfidenceConfig,
     ValidationConfig,
+    ValidationRuleConfig,
     ProjectionConfig,
     ProjectionProfileConfig,
 )
@@ -46,13 +47,30 @@ class UniqueKeyLoader(SafeLoader):
 class ConfigurationManager:
     """Manager to load and validate YAML configurations for Candidate Data Platform."""
 
-    @staticmethod
-    def load(config_dir: str | Path | None = None) -> PlatformConfiguration:
-        """Loads and validates all configurations from the configs folder.
+    _CONFIGURATION_FILES: dict[str, str] = {
+        "platform": "platform.yaml",
+        "sources": "sources.yaml",
+        "fields": "fields.yaml",
+        "merge": "merge.yaml",
+        "confidence": "confidence.yaml",
+        "validation": "validation.yaml",
+        "projection": "projection.yaml",
+    }
+
+    def __init__(self, config_directory: Path | str | None = None) -> None:
+        """Initializes the ConfigurationManager with a config directory.
 
         Args:
-            config_dir (str | Path | None): Path to the configs directory.
+            config_directory (Path | str | None): Path to the configs directory.
                 Defaults to the standard root configs/ folder.
+        """
+        if config_directory is None:
+            self._config_dir = Path(__file__).resolve().parent.parent.parent / "configs"
+        else:
+            self._config_dir = Path(config_directory)
+
+    def load(self) -> PlatformConfiguration:
+        """Loads and validates all configurations from the config directory.
 
         Returns:
             PlatformConfiguration: The strongly typed root configuration object.
@@ -60,33 +78,18 @@ class ConfigurationManager:
         Raises:
             ConfigurationError: If configurations are invalid, malformed, or missing.
         """
-        if config_dir is None:
-            # default configs relative to the workspace root
-            config_dir = Path(__file__).resolve().parent.parent.parent / "configs"
-        else:
-            config_dir = Path(config_dir)
-
         # 1. Load YAML files
-        raw_platform = ConfigurationManager._load_yaml(config_dir / "platform.yaml")
-        raw_sources = ConfigurationManager._load_yaml(config_dir / "sources.yaml")
-        raw_fields = ConfigurationManager._load_yaml(config_dir / "fields.yaml")
-        raw_merge = ConfigurationManager._load_yaml(config_dir / "merge.yaml")
-        raw_confidence = ConfigurationManager._load_yaml(config_dir / "confidence.yaml")
-        raw_validation = ConfigurationManager._load_yaml(config_dir / "validation.yaml")
-        raw_projection = ConfigurationManager._load_yaml(config_dir / "projection.yaml")
+        raw_configs: dict[str, dict[str, Any]] = {}
+        for key, filename in self._CONFIGURATION_FILES.items():
+            raw_configs[key] = self._load_yaml(self._config_dir / filename)
 
         # 2. Validate all raw configurations
-        ConfigurationManager._validate_configuration(
-            raw_platform, raw_sources, raw_fields, raw_merge, raw_confidence, raw_validation, raw_projection
-        )
+        self._validate_configuration(raw_configs)
 
         # 3. Build configuration models
-        return ConfigurationManager._build_configuration_models(
-            raw_platform, raw_sources, raw_fields, raw_merge, raw_confidence, raw_validation, raw_projection
-        )
+        return self._build_configuration_models(raw_configs)
 
-    @staticmethod
-    def _load_yaml(path: Path) -> dict[str, Any]:
+    def _load_yaml(self, path: Path) -> dict[str, Any]:
         """Loads a single YAML file using the UniqueKeyLoader.
 
         Args:
@@ -116,56 +119,40 @@ class ConfigurationManager:
         except Exception as e:
             raise ConfigurationError(f"Failed to read file {path.name}: {e}") from e
 
-    @staticmethod
-    def _validate_configuration(
-        platform: dict[str, Any],
-        sources: dict[str, Any],
-        fields: dict[str, Any],
-        merge: dict[str, Any],
-        confidence: dict[str, Any],
-        validation: dict[str, Any],
-        projection: dict[str, Any],
-    ) -> None:
-        """Validates all raw configuration structures and value constraints.
+    def _validate_configuration(self, raw_configs: dict[str, dict[str, Any]]) -> None:
+        """Orchestrates validation of all configuration models.
 
         Args:
-            platform (dict[str, Any]): Parsed platform config.
-            sources (dict[str, Any]): Parsed sources config.
-            fields (dict[str, Any]): Parsed fields config.
-            merge (dict[str, Any]): Parsed merge config.
-            confidence (dict[str, Any]): Parsed confidence config.
-            validation (dict[str, Any]): Parsed validation config.
-            projection (dict[str, Any]): Parsed projection config.
-
-        Raises:
-            ConfigurationError: If any validation rule fails.
+            raw_configs (dict[str, dict[str, Any]]): Map of config key to parsed dictionary.
         """
-        # Validate versions in every config file
-        configs_to_check = {
-            "platform.yaml": platform,
-            "sources.yaml": sources,
-            "fields.yaml": fields,
-            "merge.yaml": merge,
-            "confidence.yaml": confidence,
-            "validation.yaml": validation,
-            "projection.yaml": projection,
-        }
-        for name, cfg in configs_to_check.items():
+        self._validate_versions(raw_configs)
+        self._validate_platform(raw_configs["platform"])
+        self._validate_sources(raw_configs["sources"])
+        self._validate_fields(raw_configs["fields"], raw_configs["merge"])
+        self._validate_merge(raw_configs["merge"])
+        self._validate_confidence(raw_configs["confidence"])
+        self._validate_validation_rules(raw_configs["validation"])
+        self._validate_projection(raw_configs["projection"])
+
+    def _validate_versions(self, raw_configs: dict[str, dict[str, Any]]) -> None:
+        """Validates versions exist and are positive integers across all configs."""
+        for name, cfg in raw_configs.items():
+            filename = self._CONFIGURATION_FILES[name]
             if "version" not in cfg:
-                raise ConfigurationError(f"Missing required section 'version' in {name}")
+                raise ConfigurationError(f"Missing required section 'version' in {filename}")
             version = cfg["version"]
             if not isinstance(version, int) or version <= 0:
-                raise ConfigurationError(f"Invalid 'version' value in {name}: must be a positive integer.")
+                raise ConfigurationError(f"Invalid 'version' value in {filename}: must be a positive integer.")
 
-        # Required sections exist in platform.yaml
-        if "pipeline" not in platform:
-            raise ConfigurationError("Missing required section 'pipeline' in platform.yaml")
-        if "features" not in platform:
-            raise ConfigurationError("Missing required section 'features' in platform.yaml")
+    def _validate_platform(self, platform: dict[str, Any]) -> None:
+        """Validates platform config fields and features."""
+        for section in ("pipeline", "features"):
+            if section not in platform:
+                raise ConfigurationError(f"Missing required section '{section}' in platform.yaml")
+            if not isinstance(platform[section], dict):
+                raise ConfigurationError(f"'{section}' section in platform.yaml must be a dictionary")
 
         pipeline_sec = platform["pipeline"]
-        if not isinstance(pipeline_sec, dict):
-            raise ConfigurationError("'pipeline' section in platform.yaml must be a dictionary")
         for key in ("fail_fast", "keep_observation_history", "generate_decision_trace"):
             if key not in pipeline_sec:
                 raise ConfigurationError(f"Missing required pipeline field '{key}' in platform.yaml")
@@ -173,20 +160,20 @@ class ConfigurationManager:
                 raise ConfigurationError(f"Field '{key}' in platform.yaml must be a boolean")
 
         features_sec = platform["features"]
-        if not isinstance(features_sec, dict):
-            raise ConfigurationError("'features' section in platform.yaml must be a dictionary")
         for key in ("confidence_scoring", "projection"):
             if key not in features_sec:
                 raise ConfigurationError(f"Missing required features field '{key}' in platform.yaml")
             if not isinstance(features_sec[key], bool):
                 raise ConfigurationError(f"Field '{key}' in platform.yaml must be a boolean")
 
-        # Required sections in sources.yaml
+    def _validate_sources(self, sources: dict[str, Any]) -> None:
+        """Validates source reliability, adapters, and enable state."""
         if "sources" not in sources:
             raise ConfigurationError("Missing required section 'sources' in sources.yaml")
         sources_sec = sources["sources"]
         if not isinstance(sources_sec, dict):
             raise ConfigurationError("'sources' section in sources.yaml must be a dictionary")
+
         for src_name, src_cfg in sources_sec.items():
             if not isinstance(src_cfg, dict):
                 raise ConfigurationError(f"Source configuration for '{src_name}' must be a dictionary")
@@ -204,14 +191,48 @@ class ConfigurationManager:
             if not isinstance(src_cfg["enabled"], bool):
                 raise ConfigurationError(f"Source '{src_name}' enabled must be a boolean")
 
-        # Required sections in fields.yaml
+    def _validate_fields(self, fields: dict[str, Any], merge: dict[str, Any]) -> None:
+        """Validates field enums, strategies, and references."""
         if "fields" not in fields:
             raise ConfigurationError("Missing required section 'fields' in fields.yaml")
         fields_sec = fields["fields"]
         if not isinstance(fields_sec, dict):
             raise ConfigurationError("'fields' section in fields.yaml must be a dictionary")
 
-        # Required sections in merge.yaml
+        for f_name, f_cfg in fields_sec.items():
+            if not isinstance(f_cfg, dict):
+                raise ConfigurationError(f"Field configuration for '{f_name}' must be a dictionary")
+            if "type" not in f_cfg:
+                raise ConfigurationError(f"Missing 'type' for field '{f_name}'")
+            if "strategy" not in f_cfg:
+                raise ConfigurationError(f"Missing 'strategy' for field '{f_name}'")
+
+            # Validate Enum names (FieldType)
+            f_type_str = f_cfg["type"]
+            try:
+                FieldType(f_type_str)
+            except ValueError as e:
+                raise ConfigurationError(f"Invalid FieldType '{f_type_str}' defined for field '{f_name}'") from e
+
+            # Validate referenced merge strategy
+            f_strategy = f_cfg["strategy"]
+            if not isinstance(f_strategy, str):
+                raise ConfigurationError(f"Strategy for field '{f_name}' must be a string")
+            
+            try:
+                strategy_enum = MergeStrategy(f_strategy)
+            except ValueError as e:
+                raise ConfigurationError(f"Invalid MergeStrategy '{f_strategy}' defined for field '{f_name}'") from e
+
+            strategy_lower = strategy_enum.value.lower()
+            if strategy_lower not in merge:
+                raise ConfigurationError(
+                    f"Unsupported merge strategy '{f_strategy}' referenced by field '{f_name}'. "
+                    f"Strategy '{strategy_lower}' not defined in merge.yaml."
+                )
+
+    def _validate_merge(self, merge: dict[str, Any]) -> None:
+        """Validates merge configs single_value, union, and timeline options."""
         for sec in ("single_value", "union", "timeline"):
             if sec not in merge:
                 raise ConfigurationError(f"Missing required section '{sec}' in merge.yaml")
@@ -225,34 +246,8 @@ class ConfigurationManager:
         if "sort" not in merge["timeline"]:
             raise ConfigurationError("Missing field 'sort' in merge.yaml timeline strategy")
 
-        # Validate fields and merge strategy references
-        for f_name, f_cfg in fields_sec.items():
-            if not isinstance(f_cfg, dict):
-                raise ConfigurationError(f"Field configuration for '{f_name}' must be a dictionary")
-            if "type" not in f_cfg:
-                raise ConfigurationError(f"Missing 'type' for field '{f_name}'")
-            if "strategy" not in f_cfg:
-                raise ConfigurationError(f"Missing 'strategy' for field '{f_name}'")
-
-            # Validate Enum names
-            f_type_str = f_cfg["type"]
-            try:
-                FieldType(f_type_str)
-            except ValueError as e:
-                raise ConfigurationError(f"Invalid FieldType '{f_type_str}' defined for field '{f_name}'") from e
-
-            # Validate referenced merge strategy exists in merge.yaml
-            f_strategy = f_cfg["strategy"]
-            if not isinstance(f_strategy, str):
-                raise ConfigurationError(f"Strategy for field '{f_name}' must be a string")
-            strategy_lower = f_strategy.lower()
-            if strategy_lower not in merge:
-                raise ConfigurationError(
-                    f"Unsupported merge strategy '{f_strategy}' referenced by field '{f_name}'. "
-                    f"Strategy '{strategy_lower}' not defined in merge.yaml."
-                )
-
-        # Required sections in confidence.yaml
+    def _validate_confidence(self, confidence: dict[str, Any]) -> None:
+        """Validates weights sum and thresholds correctness."""
         if "weights" not in confidence:
             raise ConfigurationError("Missing required section 'weights' in confidence.yaml")
         if "thresholds" not in confidence:
@@ -291,13 +286,27 @@ class ConfigurationManager:
                 f"cannot be less than 'uncertain' threshold ({uncertain_threshold})."
             )
 
-        # Required sections in validation.yaml
+    def _validate_validation_rules(self, validation: dict[str, Any]) -> None:
+        """Validates validation rule shapes."""
         if "rules" not in validation:
             raise ConfigurationError("Missing required section 'rules' in validation.yaml")
-        if not isinstance(validation["rules"], dict):
+        rules_sec = validation["rules"]
+        if not isinstance(rules_sec, dict):
             raise ConfigurationError("'rules' section in validation.yaml must be a dictionary")
 
-        # Required sections in projection.yaml
+        for f_name, r_cfg in rules_sec.items():
+            if not isinstance(r_cfg, dict):
+                raise ConfigurationError(f"Validation rule for field '{f_name}' must be a dictionary")
+            if "required" not in r_cfg:
+                raise ConfigurationError(f"Missing field 'required' in validation rule for field '{f_name}'")
+            if not isinstance(r_cfg["required"], bool):
+                raise ConfigurationError(f"Field 'required' in validation rule for field '{f_name}' must be a boolean")
+            if "format" in r_cfg and r_cfg["format"] is not None:
+                if not isinstance(r_cfg["format"], str):
+                    raise ConfigurationError(f"Field 'format' in validation rule for field '{f_name}' must be a string")
+
+    def _validate_projection(self, projection: dict[str, Any]) -> None:
+        """Validates projection profiles inclusion and trace visibility flags."""
         if "profiles" not in projection:
             raise ConfigurationError("Missing required section 'profiles' in projection.yaml")
         profiles_sec = projection["profiles"]
@@ -321,21 +330,16 @@ class ConfigurationManager:
             if not isinstance(p_cfg["include_trace"], bool):
                 raise ConfigurationError(f"Projection profile '{p_name}' 'include_trace' must be a boolean")
 
-    @staticmethod
-    def _build_configuration_models(
-        platform: dict[str, Any],
-        sources: dict[str, Any],
-        fields: dict[str, Any],
-        merge: dict[str, Any],
-        confidence: dict[str, Any],
-        validation: dict[str, Any],
-        projection: dict[str, Any],
-    ) -> PlatformConfiguration:
-        """Converts raw dictionary configurations into strongly typed PlatformConfiguration.
+    def _build_configuration_models(self, raw_configs: dict[str, dict[str, Any]]) -> PlatformConfiguration:
+        """Converts raw dictionary configurations into strongly typed PlatformConfiguration."""
+        platform = raw_configs["platform"]
+        sources = raw_configs["sources"]
+        fields = raw_configs["fields"]
+        merge = raw_configs["merge"]
+        confidence = raw_configs["confidence"]
+        validation = raw_configs["validation"]
+        projection = raw_configs["projection"]
 
-        Returns:
-            PlatformConfiguration: Strongly typed root configuration models.
-        """
         # Pipeline and features
         pipeline_cfg = PipelineConfig(
             fail_fast=platform["pipeline"]["fail_fast"],
@@ -368,7 +372,7 @@ class ConfigurationManager:
             fields_cfg[f_name] = FieldConfig(
                 field_name=f_name,
                 field_type=FieldType(f_val["type"]),
-                merge_strategy=f_val["strategy"],
+                merge_strategy=MergeStrategy(f_val["strategy"]),
                 required=f_val.get("required", False),
                 validator=f_val.get("validator"),
             )
@@ -405,9 +409,15 @@ class ConfigurationManager:
             thresholds=thresholds_cfg,
         )
 
-        # Validation
+        # Validation rules
+        validation_rules: dict[str, ValidationRuleConfig] = {}
+        for f_name, r_val in validation["rules"].items():
+            validation_rules[f_name] = ValidationRuleConfig(
+                required=r_val["required"],
+                format=r_val.get("format"),
+            )
         validation_cfg = ValidationConfig(
-            rules=validation["rules"]
+            rules=validation_rules
         )
 
         # Projection
