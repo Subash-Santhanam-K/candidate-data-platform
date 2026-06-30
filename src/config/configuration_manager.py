@@ -231,6 +231,18 @@ class ConfigurationManager:
                     f"Strategy '{strategy_lower}' not defined in merge.yaml."
                 )
 
+            # Validate aliases and description
+            if "aliases" in f_cfg:
+                if not isinstance(f_cfg["aliases"], list):
+                    raise ConfigurationError(f"Aliases for field '{f_name}' must be a list")
+                for alias in f_cfg["aliases"]:
+                    if not isinstance(alias, str):
+                        raise ConfigurationError(f"Alias items for field '{f_name}' must be strings")
+
+            if "description" in f_cfg and f_cfg["description"] is not None:
+                if not isinstance(f_cfg["description"], str):
+                    raise ConfigurationError(f"Description for field '{f_name}' must be a string")
+
     def _validate_merge(self, merge: dict[str, Any]) -> None:
         """Validates merge configs single_value, union, and timeline options."""
         for sec in ("single_value", "union", "timeline"):
@@ -375,6 +387,8 @@ class ConfigurationManager:
                 merge_strategy=MergeStrategy(f_val["strategy"]),
                 required=f_val.get("required", False),
                 validator=f_val.get("validator"),
+                aliases=list(f_val.get("aliases", [])),
+                description=f_val.get("description"),
             )
 
         # Merge Strategies

@@ -6,19 +6,35 @@ fields:
     strategy: SINGLE_VALUE
     required: true
     validator: email
+    aliases:
+      - mail
+      - emailAddress
+      - primary_email
+    description: "Primary email address of the candidate"
 
   phone:
     type: PHONE
     strategy: SINGLE_VALUE
     required: false
     validator: phone
+    aliases:
+      - telephone
+      - mobile
+    description: "Contact phone number of the candidate"
 
   skills:
     type: SKILL
     strategy: UNION
     required: false
+    aliases:
+      - specialties
+      - technologies
+    description: "Technical skills and technologies list"
 
   experience:
     type: EXPERIENCE
     strategy: TIMELINE
     required: false
+    aliases:
+      - work_history
+    description: "Candidate's work history timeline"

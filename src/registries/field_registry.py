@@ -20,49 +20,60 @@ class FieldDefinitionRegistry:
         self._canonical_index: dict[str, FieldDefinition] = {}
         self._alias_index: dict[str, str] = {}
 
-        # 1. Build canonical definitions
-        for f_name, f_cfg in config.fields.items():
-            aliases: list[str] = getattr(f_cfg, "aliases", [])
-            description: str | None = getattr(f_cfg, "description", None)
+        self._build_canonical_index(config)
+        self._build_alias_index()
 
+    def _build_canonical_index(self, config: PlatformConfiguration) -> None:
+        """Helper to build and validate the canonical field definitions index."""
+        for f_name, f_cfg in config.fields.items():
             definition = FieldDefinition(
                 canonical_name=f_cfg.field_name,
                 field_type=f_cfg.field_type,
                 merge_strategy=f_cfg.merge_strategy,
                 required=f_cfg.required,
-                aliases=aliases,
+                aliases=f_cfg.aliases,
                 validator=f_cfg.validator,
-                description=description,
+                description=f_cfg.description,
             )
 
-            if definition.canonical_name in self._canonical_index:
-                raise ConfigurationError(f"Duplicate canonical field name: {definition.canonical_name}")
+            # Lowercase for case-insensitive duplicate canonical checks
+            normalized_name = definition.canonical_name.lower()
+            if normalized_name in self._canonical_index:
+                raise ConfigurationError(f"Duplicate canonical field name (case-insensitive): {definition.canonical_name}")
 
-            self._canonical_index[definition.canonical_name] = definition
+            # Store in index with normalized key
+            self._canonical_index[normalized_name] = definition
 
-        # 2. Build alias indexes and validate constraints
-        for canonical_name, definition in self._canonical_index.items():
+    def _build_alias_index(self) -> None:
+        """Helper to build and validate the alias mappings index."""
+        for normalized_canonical, definition in self._canonical_index.items():
             for alias in definition.aliases:
                 if not isinstance(alias, str) or not alias.strip():
-                    raise ConfigurationError(f"Empty or whitespace alias string found for field '{canonical_name}'")
+                    raise ConfigurationError(
+                        f"Empty or whitespace alias string found for field '{definition.canonical_name}'"
+                    )
+
+                # Lowercase for case-insensitive checks
+                normalized_alias = alias.lower()
 
                 # Validate alias colliding with canonical names
-                if alias in self._canonical_index:
+                if normalized_alias in self._canonical_index:
                     raise ConfigurationError(
-                        f"Alias '{alias}' for field '{canonical_name}' collides with an existing canonical field name"
+                        f"Alias '{alias}' for field '{definition.canonical_name}' collides with an existing canonical field name"
                     )
 
                 # Validate duplicate aliases / alias pointing to multiple canonical fields
-                if alias in self._alias_index:
-                    existing_canonical = self._alias_index[alias]
-                    if existing_canonical != canonical_name:
+                if normalized_alias in self._alias_index:
+                    existing_canonical = self._alias_index[normalized_alias]
+                    if existing_canonical != normalized_canonical:
+                        orig_existing = self._canonical_index[existing_canonical].canonical_name
                         raise ConfigurationError(
-                            f"Alias '{alias}' points to multiple canonical fields: '{existing_canonical}' and '{canonical_name}'"
+                            f"Alias '{alias}' points to multiple canonical fields: '{orig_existing}' and '{definition.canonical_name}'"
                         )
                     else:
-                        raise ConfigurationError(f"Duplicate alias '{alias}' defined for field '{canonical_name}'")
+                        raise ConfigurationError(f"Duplicate alias '{alias}' defined for field '{definition.canonical_name}'")
 
-                self._alias_index[alias] = canonical_name
+                self._alias_index[normalized_alias] = normalized_canonical
 
     def resolve(self, name: str) -> FieldDefinition:
         """Resolves a field name or alias to its canonical FieldDefinition.
@@ -76,11 +87,12 @@ class FieldDefinitionRegistry:
         Raises:
             KeyError: If the name or alias cannot be resolved.
         """
-        if name in self._canonical_index:
-            return self._canonical_index[name]
-        if name in self._alias_index:
-            canonical_name = self._alias_index[name]
-            return self._canonical_index[canonical_name]
+        normalized_name = name.lower()
+        if normalized_name in self._canonical_index:
+            return self._canonical_index[normalized_name]
+        if normalized_name in self._alias_index:
+            canonical_key = self._alias_index[normalized_name]
+            return self._canonical_index[canonical_key]
         raise KeyError(f"Field name or alias '{name}' not found")
 
     def get(self, canonical_name: str) -> FieldDefinition:
@@ -95,8 +107,9 @@ class FieldDefinitionRegistry:
         Raises:
             KeyError: If the canonical field name is not registered.
         """
-        if canonical_name in self._canonical_index:
-            return self._canonical_index[canonical_name]
+        normalized_name = canonical_name.lower()
+        if normalized_name in self._canonical_index:
+            return self._canonical_index[normalized_name]
         raise KeyError(f"Canonical field '{canonical_name}' not found")
 
     def exists(self, name: str) -> bool:
@@ -108,7 +121,8 @@ class FieldDefinitionRegistry:
         Returns:
             bool: True if it exists as a canonical name or alias, otherwise False.
         """
-        return name in self._canonical_index or name in self._alias_index
+        normalized_name = name.lower()
+        return normalized_name in self._canonical_index or normalized_name in self._alias_index
 
     def all(self) -> list[FieldDefinition]:
         """Returns a list of all registered canonical field definitions.

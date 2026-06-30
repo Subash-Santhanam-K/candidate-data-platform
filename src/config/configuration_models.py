@@ -70,12 +70,16 @@ class FieldConfig:
         merge_strategy (MergeStrategy): The logic strategy to resolve conflicts.
         required (bool): Whether the field must be resolved.
         validator (str | None): Registered validator name.
+        aliases (list[str]): Alternative field names mapped to this definition.
+        description (str | None): Optional descriptive text of the field.
     """
     field_name: str
     field_type: FieldType
     merge_strategy: MergeStrategy
     required: bool = False
     validator: str | None = None
+    aliases: list[str] = field(default_factory=list)
+    description: str | None = None
 
 
 @dataclass(slots=True)
