@@ -103,15 +103,15 @@ class UnionStrategy(BaseMergeStrategy):
             val = o.normalized_value
             if isinstance(val, list):
                 for item in val:
-                    if item is not None:
-                        if isinstance(item, str) and not item.strip():
-                            continue
-                        unique_vals.add(item)
+                    if isinstance(item, str):
+                        trimmed = item.strip()
+                        if trimmed:
+                            unique_vals.add(trimmed)
             else:
-                if val is not None:
-                    if isinstance(val, str) and not val.strip():
-                        continue
-                    unique_vals.add(val)
+                if isinstance(val, str):
+                    trimmed = val.strip()
+                    if trimmed:
+                        unique_vals.add(trimmed)
 
         resolved_value = sorted(list(unique_vals))
 
